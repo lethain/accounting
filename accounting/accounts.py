@@ -92,9 +92,36 @@ class Journal:
                 self.entries.sort(key=lambda x: x.date)
 
     def __repr__(self):
-        acc = 'Journal'
+        rows = [
+            ['Date', 'Account Titles and Explanations', 'Ref', 'Debit', 'Credit'],
+        ]
+        
         for entry in self.entries:
-            acc += '\n' + str(entry)
+            entry_rows = []
+            for debit in entry.debits:
+                row = ['', self.coa.get_account(debit.acc_num).name, str(debit.acc_num), str(debit.amount), '']
+                entry_rows.append(row)
+            for credit in entry.credits:
+                row = ['', self.coa.get_account(credit.acc_num).name, str(credit.acc_num), '', str(credit.amount)]
+                entry_rows.append(row)                
+            entry_rows[0][0] = str(entry.date.date())
+            rows += entry_rows
+
+        longest_by_col = [0] * len(rows[0])
+        for row in rows:
+            for i, col in enumerate(row):
+                len_col = len(col)
+                if len_col > longest_by_col[i]:
+                    longest_by_col[i] = len_col
+
+        acc = 'General Journal'
+        offset = 3
+        for row in rows:
+            acc += '\n'
+            for i, col in enumerate(row):
+                target_len = longest_by_col[i] + offset
+                acc += (" " * (target_len - len(col))) + col
+            
         return acc
 
 
@@ -123,10 +150,4 @@ class Entry:
                 else:
                     self.debits.append(change)
     def __repr__(self):
-        if self.journal:
-            credits_str = ", ".join([f'Credit({self.journal.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.credits])
-            debits_str = ", ".join([f'Debit({self.journal.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.debits])
-        else:
-            credits_str = ", ".join([f'Credit({x.acc_num}: {x.amount})' for x in self.credits])
-            debits_str = ", ".join([f'Debit({x.acc_num}: {x.amount})' for x in self.debits])
-        return f'{self.date.date()}: {debits_str}, {credits_str}'
+        return f'Entry({self.date.date()}: {debits}, {credits})'
