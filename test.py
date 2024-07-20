@@ -49,6 +49,7 @@ entries = [
     Entry('1/10/2024', [Credit(101, 10000), Debit(311, 10000)]),
     Entry('1/10/2024', [Credit(157, 10000), Debit(200, 10000)]),
     Entry('2/10/2024', [Credit(101, 1200), Debit(209, 1200)]),
+    Entry('2/10/2024', [Credit(101, -900), Debit(729, -900)]),
 ]
 
 for entry in entries:
