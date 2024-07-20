@@ -79,7 +79,8 @@ class ChartOfAccounts:
 
 
 class Journal:
-    def __init__(self, coa):
+    def __init__(self, name, coa):
+        self.name = name
         self.coa = coa
         self.entries = []
 
@@ -114,7 +115,7 @@ class Journal:
                 if len_col > longest_by_col[i]:
                     longest_by_col[i] = len_col
 
-        acc = 'General Journal'
+        acc = f'General Journal ({self.name})'
         offset = 3
         for row in rows:
             acc += '\n'

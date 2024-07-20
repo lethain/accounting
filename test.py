@@ -42,7 +42,7 @@ for acc_num, acc_name in account_values:
 print(coa)
 
 # create and populate journal with entries
-journal = Journal(coa)
+journal = Journal('J1', coa)
 
 # Perform first entry
 entries = [
