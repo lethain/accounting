@@ -1,4 +1,4 @@
-from accounting.accounts import Category, ChartOfAccounts
+from accounting.accounts import Category, ChartOfAccounts, Ledger, Entry, Credit, Debit
 
 category_values = [
     ('Assets', 100, 200),
@@ -40,3 +40,24 @@ for acc_num, acc_name in account_values:
     coa.add_account(acc_num, acc_name)
 
 print(coa)
+
+# create and populate ledger with entries
+ledger = Ledger(coa)
+
+# Perform first entry
+entries = [
+    Entry('1/10/2024', [Credit(101, 10000), Debit(311, 10000)]),
+    Entry('1/10/2024', [Credit(157, 10000), Debit(200, 10000)]),
+    Entry('2/10/2024', [Credit(101, 1200), Debit(209, 1200)]),
+]
+
+for entry in entries:
+    ledger.post(entry)
+
+print(ledger)
+
+
+
+
+
+
