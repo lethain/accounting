@@ -78,21 +78,21 @@ class ChartOfAccounts:
 
 
 
-class Ledger:
+class Journal:
     def __init__(self, coa):
         self.coa = coa
         self.entries = []
 
     def post(self, entry):
         self.entries.append(entry)
-        entry.ledger = self
+        entry.journal = self
         if len(self.entries) > 1:
             prev, last = self.entries[-2:]
             if prev.date > last.date:
                 self.entries.sort(key=lambda x: x.date)
 
     def __repr__(self):
-        acc = 'Ledger'
+        acc = 'Journal'
         for entry in self.entries:
             acc += '\n' + str(entry)
         return acc
@@ -112,7 +112,7 @@ class Debit(Credit):
     
 class Entry:
     def __init__(self, date, changes=None):
-        self.ledger = None
+        self.journal = None
         self.date = datetime.datetime.strptime(date, "%d/%m/%Y")
         self.credits = []
         self.debits = []
@@ -123,10 +123,10 @@ class Entry:
                 else:
                     self.debits.append(change)
     def __repr__(self):
-        if self.ledger:
-            credits_str = ", ".join([f'Credit({self.ledger.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.credits])
-            debits_str = ", ".join([f'Debit({self.ledger.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.debits])
+        if self.journal:
+            credits_str = ", ".join([f'Credit({self.journal.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.credits])
+            debits_str = ", ".join([f'Debit({self.journal.coa.get_account(x.acc_num).name}, {x.acc_num}: {x.amount})' for x in self.debits])
         else:
             credits_str = ", ".join([f'Credit({x.acc_num}: {x.amount})' for x in self.credits])
             debits_str = ", ".join([f'Debit({x.acc_num}: {x.amount})' for x in self.debits])
-        return f'Entry({self.date.date()}, {credits_str}, {debits_str})'
+        return f'{self.date.date()}: {debits_str}, {credits_str}'
