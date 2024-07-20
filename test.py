@@ -64,4 +64,4 @@ for entry in entries:
 print(journal)
 
 # show general ledger summary of all journal entries
-#print(journal.general_ledger())
+print(journal.general_ledger_as_str())

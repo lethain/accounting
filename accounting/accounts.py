@@ -97,6 +97,29 @@ class Journal:
             if prev.date > last.date:
                 self.entries.sort(key=lambda x: x.date)
 
+    def general_ledger_as_str(self):
+        title = 'General ledger'
+
+        changed_accounts = {}
+        for entry in self.entries:
+            changes = entry.debits + entry.credits
+            for change in changes:
+                if change.acc_num not in changed_accounts:
+                    changed_accounts[change.account_num] = []
+                changed_accounts[change.account_num].append(change)
+                
+        changed_accounts_by_num = sorted(changed_accounts.keys())
+        for account_num in changed_accounts_by_num:
+            account = self.coa.get_account(account_num)
+            account_changes = changed_accounts_by_num[account_num]
+            account_changes.sort(key=lambda x: x.date)
+            print(account.name, account_changes)
+            
+        return ""
+        
+        
+        
+
     def __repr__(self):
         rows = [
             ['Date', 'Account Titles and Explanations', 'Ref', 'Debit', 'Credit'],
