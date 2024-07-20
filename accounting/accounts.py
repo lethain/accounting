@@ -1,4 +1,5 @@
 import datetime
+from accounting.utils import leftpad_table
 
 """
 Representing accounts and chart of accounts.
@@ -8,9 +9,12 @@ class MismatchedAccount(Exception):
 
 
 class Account:
-    def __init__(self, num, name):
+    def __init__(self, num, name, debit_credit_rules):
         self.num = num
         self.name = name
+        # True = debits add, credits sub
+        # False = debits sub, credits add
+        self.debit_credit_rules = debit_credit_rules
 
 
 class Category:
@@ -46,8 +50,8 @@ class ChartOfAccounts:
         self.categories += categories
         self.categories.sort(key=lambda x: x.start)
         
-    def add_account(self, num, name):
-        acc = Account(num, name)
+    def add_account(self, num, name, debit_credit_rules):
+        acc = Account(num, name, debit_credit_rules)
         category = self.matching_category(num)
         if category is None:
             nums = ", ".join([str(x.start) for x in self.categories])
@@ -73,6 +77,7 @@ class ChartOfAccounts:
 
             for account in category.accounts:
                 acc += '\n' + str(account.num) + '\t' + account.name
+                acc += '\t' + str(account.debit_credit_rules)
             acc += '\n'
         return acc
 
@@ -106,24 +111,10 @@ class Journal:
                 row = ['', self.coa.get_account(credit.acc_num).name, str(credit.acc_num), '', str(credit.amount)]
                 entry_rows.append(row)                
             entry_rows[0][0] = str(entry.date.date())
+            entry_rows.append([])
             rows += entry_rows
 
-        longest_by_col = [0] * len(rows[0])
-        for row in rows:
-            for i, col in enumerate(row):
-                len_col = len(col)
-                if len_col > longest_by_col[i]:
-                    longest_by_col[i] = len_col
-
-        acc = f'General Journal ({self.name})'
-        offset = 3
-        for row in rows:
-            acc += '\n'
-            for i, col in enumerate(row):
-                target_len = longest_by_col[i] + offset
-                acc += (" " * (target_len - len(col))) + col
-            
-        return acc
+        return leftpad_table(f'General Journal ({self.name})', rows)
 
 
 class Credit:
