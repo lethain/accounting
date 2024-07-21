@@ -95,6 +95,26 @@ class GeneralLedger:
             if table['num'] == num:
                 return table
 
+    def trial_balance(self):
+        table = self.build()
+        debits = []
+        credits = []
+        for category in table:
+            account_num = category['num']
+            account = self.journal.coa.get_account(account_num)
+            balance = category['rows'][-1]['balance']
+            as_dict = {'balance': balance, 'account_name': category['name'], 'account_num': account_num}
+            if account.debit_credit_rules:
+                debits.append(as_dict)
+            else:
+                credits.append(as_dict)
+
+        debits_sum = sum([x['balance'] for x in debits])
+        credits_sum = sum([x['balance'] for x in credits])
+        equal = debits_sum == credits_sum
+        return { 'equal': equal, 'debits': debits, 'credits': credits, 'debits_sum': debits_sum, 'credits_sum': credits_sum}
+        
+
     def build(self):
         # cache building GL
         if self._built:

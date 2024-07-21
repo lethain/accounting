@@ -46,6 +46,24 @@ def make_coa():
         coa.add_account(*account_value)
     return coa
 
+def make_journal():
+    coa = make_coa()
+    journal = Journal('J1', coa)
+    entries = [
+        Entry('1/10/2024', [Debit(101, 10000), Credit(311, 10000)]),
+        Entry('1/10/2024', [Debit(157, 5000), Credit(200, 5000)]),
+        Entry('2/10/2024', [Debit(101, 1200), Credit(209, 1200)]),
+        Entry('3/10/2024', [Debit(729, 900), Credit(101, 900)]),
+        Entry('4/10/2024', [Debit(130, 600), Credit(101, 600)]),
+        Entry('5/10/2024', [Debit(126, 2500), Credit(201, 2500)]),
+        Entry('20/10/2024', [Debit(101, 10000), Credit(400, 10000)]),
+        Entry('26/10/2024', [Debit(726, 4000), Credit(101, 4000)]),
+        Entry('31/10/2024', [Debit(332, 500), Credit(101, 500)]),
+    ]
+
+    return journal, entries
+    
+
 class TestChartOfAccounts(unittest.TestCase):
     def test_setup_chart_of_accounts(self):
         coa = make_coa()
@@ -61,26 +79,11 @@ class TestChartOfAccounts(unittest.TestCase):
 
 class TestGeneralLedger(unittest.TestCase):
     def test_general_ledger(self):
-        coa = make_coa()
-
-        journal = Journal('J1', coa)
-        entries = [
-            Entry('1/10/2024', [Debit(101, 10000), Credit(311, 10000)]),
-            Entry('1/10/2024', [Debit(157, 5000), Credit(200, 5000)]),
-            Entry('2/10/2024', [Debit(101, 1200), Credit(209, 1200)]),
-            Entry('3/10/2024', [Debit(729, 900), Credit(101, 900)]),
-            Entry('4/10/2024', [Debit(130, 600), Credit(101, 600)]),
-            Entry('5/10/2024', [Debit(126, 2500), Credit(201, 2500)]),
-            Entry('20/10/2024', [Debit(101, 10000), Credit(400, 10000)]),
-            Entry('26/10/2024', [Debit(726, 4000), Credit(101, 4000)]),
-            Entry('31/10/2024', [Debit(332, 500), Credit(101, 500)]),
-        ]
-
+        journal, entries = make_journal()
         for entry in entries:
             journal.post(entry)
 
         gl = journal.general_ledger()
-
         cash_acc = gl.account(101)
         self.assertEqual(cash_acc['num'], 101)        
         self.assertEqual(cash_acc['name'], 'Cash')
@@ -102,3 +105,16 @@ class TestGeneralLedger(unittest.TestCase):
         for i, bal in enumerate(expected):
             self.assertEqual(rows[i]['balance'], bal)         
         
+class TestTrialBalance(unittest.TestCase):
+    def test_general_ledger(self):
+        journal, entries = make_journal()
+        for entry in entries:
+            journal.post(entry)
+
+        gl = journal.general_ledger()        
+        tb = gl.trial_balance()
+        
+        self.assertEqual(tb['equal'], True)
+        self.assertEqual(tb['credits_sum'], 28700)
+        self.assertEqual(tb['debits_sum'], 28700)        
+
