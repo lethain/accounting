@@ -83,34 +83,25 @@ class ChartOfAccounts:
 
 
 
-class Journal:
-    def __init__(self, name, coa):
+class GeneralLedger:
+    def __init__(self, name, journal):
         self.name = name
-        self.coa = coa
-        self.entries = []
+        self.journal = journal
 
-    def post(self, entry):
-        self.entries.append(entry)
-        entry.journal = self
-        if len(self.entries) > 1:
-            prev, last = self.entries[-2:]
-            if prev.date > last.date:
-                self.entries.sort(key=lambda x: x.date)
-
-    def general_ledger_as_str(self):
-        acc = 'General ledger'
-
+    def build(self):
         changed_accounts = {}
-        for entry in self.entries:
+        for entry in self.journal.entries:
             changes = entry.debits + entry.credits
             for change in changes:
                 if change.acc_num not in changed_accounts:
                     changed_accounts[change.acc_num] = []
                 changed_accounts[change.acc_num].append(change)
-                
         changed_accounts_by_num = sorted(changed_accounts.keys())
+
+        acc = self.name
+
         for account_num in changed_accounts_by_num:
-            account = self.coa.get_account(account_num)
+            account = self.journal.coa.get_account(account_num)
             account_changes = changed_accounts[account_num]
             account_changes.sort(key=lambda x: x.entry.date)
 
@@ -146,17 +137,33 @@ class Journal:
                 if credit is None:
                     credit = ''
                 
-                row = [str(change.entry.date.date()), '', self.name, str(debit), str(credit), str(balance)]
+                row = [str(change.entry.date.date()), '', self.journal.name, str(debit), str(credit), str(balance)]
                 table.append(row)
             
             title = f'\n{account.name}\t{account.num}'            
             acc += '\n' + leftpad_table(title, table)
-
-            
         return acc
         
-        
-        
+    def __repr__(self):
+        return self.build()
+
+
+class Journal:
+    def __init__(self, name, coa):
+        self.name = name
+        self.coa = coa
+        self.entries = []
+
+    def post(self, entry):
+        self.entries.append(entry)
+        entry.journal = self
+        if len(self.entries) > 1:
+            prev, last = self.entries[-2:]
+            if prev.date > last.date:
+                self.entries.sort(key=lambda x: x.date)
+
+    def general_ledger(self):
+        return GeneralLedger('General ledger', self)
 
     def __repr__(self):
         rows = [
