@@ -98,24 +98,62 @@ class Journal:
                 self.entries.sort(key=lambda x: x.date)
 
     def general_ledger_as_str(self):
-        title = 'General ledger'
+        acc = 'General ledger'
 
         changed_accounts = {}
         for entry in self.entries:
             changes = entry.debits + entry.credits
             for change in changes:
                 if change.acc_num not in changed_accounts:
-                    changed_accounts[change.account_num] = []
-                changed_accounts[change.account_num].append(change)
+                    changed_accounts[change.acc_num] = []
+                changed_accounts[change.acc_num].append(change)
                 
         changed_accounts_by_num = sorted(changed_accounts.keys())
         for account_num in changed_accounts_by_num:
             account = self.coa.get_account(account_num)
-            account_changes = changed_accounts_by_num[account_num]
-            account_changes.sort(key=lambda x: x.date)
-            print(account.name, account_changes)
+            account_changes = changed_accounts[account_num]
+            account_changes.sort(key=lambda x: x.entry.date)
+
+            table = [['Date', 'Explanation', 'Ref', 'Debit', 'Credit', 'Balance']]
+            debits_add_credits_sub = account.debit_credit_rules
+            balance = 0
+            for change in account_changes:
+                debit = None
+                credit = None
+
+                if change.is_debit and debit is None:
+                    debit = 0
+                elif change.is_credit and credit is None:
+                    credit = 0
+                
+                if change.is_debit and debits_add_credits_sub:
+                    debit = change.amount
+                    balance += change.amount
+                elif change.is_credit and debits_add_credits_sub:
+                    credit = -change.amount
+                    balance -= change.amount
+                elif change.is_debit and not debits_add_credits_sub:
+                    debit = -change.amount
+                    balance -= change.amount
+                elif change.is_credit and not debits_add_credits_sub:
+                    credit = change.amount
+                    balance += change.amount
+                else:
+                    raise Exception('should be unreachable')
+
+                if debit is None:
+                    debit = ''
+                if credit is None:
+                    credit = ''
+                
+                row = [str(change.entry.date.date()), '', self.name, str(debit), str(credit), str(balance)]
+                table.append(row)
             
-        return ""
+            title = f'\n{account.name}\t{account.num}'            
+            acc += '\n' + leftpad_table(title, table)
+
+            
+        return acc
         
         
         
@@ -142,15 +180,18 @@ class Journal:
 
 class Credit:
     is_credit = True
+    is_debit = False
     
     def __init__(self, acc_num, amount, note=None):
         self.acc_num = acc_num
         self.amount = amount
         self.note = note
+        self.entry = None
         
 
 class Debit(Credit):
     is_credit = False
+    is_debit = True
     
 class Entry:
     def __init__(self, date, changes=None):
@@ -160,6 +201,7 @@ class Entry:
         self.debits = []
         if changes:
             for change in changes:
+                change.entry = self
                 if change.is_credit:
                     self.credits.append(change)
                 else:
