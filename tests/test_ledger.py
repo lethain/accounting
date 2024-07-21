@@ -80,4 +80,25 @@ class TestGeneralLedger(unittest.TestCase):
             journal.post(entry)
 
         gl = journal.general_ledger()
+
+        cash_acc = gl.account(101)
+        self.assertEqual(cash_acc['num'], 101)        
+        self.assertEqual(cash_acc['name'], 'Cash')
+
+        """
+        From 2-17 in textbook:
+
+                 Date   Explanation   Ref   Debit   Credit   Balance
+           2024-10-01                  J1   10000              10000
+           2024-10-02                  J1    1200              11200
+           2024-10-03                  J1             -900     10300
+           2024-10-04                  J1             -600      9700
+           2024-10-20                  J1   10000              19700
+           2024-10-26                  J1            -4000     15700
+           2024-10-31                  J1             -500     15200
+        """
+        rows = cash_acc['rows']
+        expected = [10000, 11200, 10300, 9700, 19700, 15700, 15200]
+        for i, bal in enumerate(expected):
+            self.assertEqual(rows[i]['balance'], bal)         
         

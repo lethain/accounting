@@ -30,7 +30,7 @@ class Category:
             raise MismatchedAccount(f('{account.num} not between {self.start} and {self.end}'))
         self.accounts.append(account)
         self.accounts.sort(key=lambda x: x.num)
-        
+
 
     def __repr__(self):
         cls = self.__class__.__name__
@@ -40,7 +40,7 @@ class Category:
 class MissingAccount(Exception):
     pass
 
-    
+
 class ChartOfAccounts:
     def __init__(self):
         self.categories = []
@@ -49,7 +49,7 @@ class ChartOfAccounts:
     def add_categories(self, categories):
         self.categories += categories
         self.categories.sort(key=lambda x: x.start)
-        
+
     def add_account(self, num, name, debit_credit_rules):
         acc = Account(num, name, debit_credit_rules)
         category = self.matching_category(num)
@@ -87,8 +87,19 @@ class GeneralLedger:
     def __init__(self, name, journal):
         self.name = name
         self.journal = journal
+        self._built = None
+
+    def account(self, num):
+        tables = self.build()
+        for table in tables:
+            if table['num'] == num:
+                return table
 
     def build(self):
+        # cache building GL
+        if self._built:
+            return self._built
+        
         changed_accounts = {}
         for entry in self.journal.entries:
             changes = entry.debits + entry.credits
@@ -98,16 +109,15 @@ class GeneralLedger:
                 changed_accounts[change.acc_num].append(change)
         changed_accounts_by_num = sorted(changed_accounts.keys())
 
-        acc = self.name
-
+        tables = []
         for account_num in changed_accounts_by_num:
             account = self.journal.coa.get_account(account_num)
             account_changes = changed_accounts[account_num]
             account_changes.sort(key=lambda x: x.entry.date)
 
-            table = [['Date', 'Explanation', 'Ref', 'Debit', 'Credit', 'Balance']]
             debits_add_credits_sub = account.debit_credit_rules
             balance = 0
+            table = []
             for change in account_changes:
                 debit = None
                 credit = None
@@ -116,7 +126,7 @@ class GeneralLedger:
                     debit = 0
                 elif change.is_credit and credit is None:
                     credit = 0
-                
+
                 if change.is_debit and debits_add_credits_sub:
                     debit = change.amount
                     balance += change.amount
@@ -132,20 +142,38 @@ class GeneralLedger:
                 else:
                     raise Exception('should be unreachable')
 
+
+                row = {'date': change.entry.date, 'ref': self.journal.name, 'debit': debit, 'credit': credit, 'balance': balance}
+                table.append(row)
+            tables.append({'name': account.name, 'num': account.num, 'rows': table})
+
+        self._built = tables
+        return tables
+
+    def __repr__(self):
+        tables_as_dicts = self.build()
+
+        acc = self.name
+        for table_as_dict in tables_as_dicts:
+            account_name = table_as_dict['name']
+            account_num = table_as_dict['num']
+            title = f'\n{account_name}\t{account_num}'
+
+            table = [['Date', 'Explanation', 'Ref', 'Debit', 'Credit', 'Balance']]
+            for dict_row in table_as_dict['rows']:
+                debit = dict_row['debit']
+                credit = dict_row['credit']
+                date = dict_row['date']
+                balance = dict_row['balance']
                 if debit is None:
                     debit = ''
                 if credit is None:
                     credit = ''
-                
-                row = [str(change.entry.date.date()), '', self.journal.name, str(debit), str(credit), str(balance)]
+
+                row = [str(date.date()), '', self.journal.name, str(debit), str(credit), str(balance)]
                 table.append(row)
-            
-            title = f'\n{account.name}\t{account.num}'            
             acc += '\n' + leftpad_table(title, table)
         return acc
-        
-    def __repr__(self):
-        return self.build()
 
 
 class Journal:
@@ -169,7 +197,7 @@ class Journal:
         rows = [
             ['Date', 'Account Titles and Explanations', 'Ref', 'Debit', 'Credit'],
         ]
-        
+
         for entry in self.entries:
             entry_rows = []
             for debit in entry.debits:
@@ -177,7 +205,7 @@ class Journal:
                 entry_rows.append(row)
             for credit in entry.credits:
                 row = ['', self.coa.get_account(credit.acc_num).name, str(credit.acc_num), '', str(credit.amount)]
-                entry_rows.append(row)                
+                entry_rows.append(row)
             entry_rows[0][0] = str(entry.date.date())
             entry_rows.append([])
             rows += entry_rows
@@ -188,18 +216,18 @@ class Journal:
 class Credit:
     is_credit = True
     is_debit = False
-    
+
     def __init__(self, acc_num, amount, note=None):
         self.acc_num = acc_num
         self.amount = amount
         self.note = note
         self.entry = None
-        
+
 
 class Debit(Credit):
     is_credit = False
     is_debit = True
-    
+
 class Entry:
     def __init__(self, date, changes=None):
         self.journal = None
