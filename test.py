@@ -24,4 +24,8 @@ for entry in entries:
 print(journal)
 
 # show general ledger summary of all journal entries
-print(journal.general_ledger())
+gl = journal.general_ledger()
+print(gl)
+
+tb = gl.trial_balance()
+print('\n', tb)

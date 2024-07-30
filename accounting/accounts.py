@@ -81,6 +81,48 @@ class ChartOfAccounts:
             acc += '\n'
         return acc
 
+class TrialBalance:
+    def __init__(self, ledger):
+        self.ledger = ledger
+        self._built = None
+
+    def build(self):
+        if self._built:
+            return self._built
+
+        table = self.ledger.build()
+        debits = []
+        credits = []
+        for category in table:
+            account_num = category['num']
+            account = self.ledger.journal.coa.get_account(account_num)
+            balance = category['rows'][-1]['balance']
+            as_dict = {'balance': balance, 'account_name': category['name'], 'account_num': account_num}
+            if account.debit_credit_rules:
+                debits.append(as_dict)
+            else:
+                credits.append(as_dict)
+
+        debits_sum = sum([x['balance'] for x in debits])
+        credits_sum = sum([x['balance'] for x in credits])
+        equal = debits_sum == credits_sum
+        built = { 'equal': equal, 'debits': debits, 'credits': credits, 'debits_sum': debits_sum, 'credits_sum': credits_sum}
+        self._built = built
+        return built
+
+    def __repr__(self):
+        as_dicts = self.build()
+
+        rows = [['Account','Name', 'Debit', 'Credit']]
+        accounts = []
+        for row in as_dicts['credits']:
+            accounts.append([str(row['account_num']), row['account_name'], '', str(row['balance'])])
+        for row in as_dicts['debits']:
+            accounts.append([str(row['account_num']), row['account_name'], str(row['balance']), ''])
+
+        accounts.sort()
+        rows += accounts + [['', 'Totals', str(as_dicts['debits_sum']), str(as_dicts['credits_sum'])]]
+        return leftpad_table('Trial Balance', rows)
 
 
 class GeneralLedger:
@@ -96,30 +138,14 @@ class GeneralLedger:
                 return table
 
     def trial_balance(self):
-        table = self.build()
-        debits = []
-        credits = []
-        for category in table:
-            account_num = category['num']
-            account = self.journal.coa.get_account(account_num)
-            balance = category['rows'][-1]['balance']
-            as_dict = {'balance': balance, 'account_name': category['name'], 'account_num': account_num}
-            if account.debit_credit_rules:
-                debits.append(as_dict)
-            else:
-                credits.append(as_dict)
+        return TrialBalance(self)
 
-        debits_sum = sum([x['balance'] for x in debits])
-        credits_sum = sum([x['balance'] for x in credits])
-        equal = debits_sum == credits_sum
-        return { 'equal': equal, 'debits': debits, 'credits': credits, 'debits_sum': debits_sum, 'credits_sum': credits_sum}
-        
 
     def build(self):
         # cache building GL
         if self._built:
             return self._built
-        
+
         changed_accounts = {}
         for entry in self.journal.entries:
             changes = entry.debits + entry.credits

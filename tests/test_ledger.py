@@ -112,7 +112,7 @@ class TestTrialBalance(unittest.TestCase):
             journal.post(entry)
 
         gl = journal.general_ledger()        
-        tb = gl.trial_balance()
+        tb = gl.trial_balance().build()
         
         self.assertEqual(tb['equal'], True)
         self.assertEqual(tb['credits_sum'], 28700)
